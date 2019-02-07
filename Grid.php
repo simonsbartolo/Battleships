@@ -43,11 +43,11 @@ class Grid
             for ($n=1;$n<=$this->numberOfGrids;$n++) {
                 foreach ($this->letters as $letter) {
                     echo ("| ");       
-                    if ($this->gridCells[$letter][$j] == 2) {
+                    if ($this->gridCells[$n][$letter][$j] == 2) {
                         echo("o ");
-                    } elseif ($this->gridCells[$letter][$j] == 1) {
+                    } elseif ($this->gridCells[$n][$letter][$j] == 1) {
                         echo("x ");
-                    } elseif ($this->gridCells[$letter][$j] == -1) {
+                    } elseif ($this->gridCells[$n][$letter][$j] == -1) {
                         echo("- ");
                     } else {
                         echo("  ");

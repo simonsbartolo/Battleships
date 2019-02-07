@@ -1,19 +1,11 @@
 <?php
+
+require_once('Grid.php');
+
 $letters = array('A', 'B', 'C', 'D', "E", 'F', 'G', 'H', 'I', 'J');
 $cells = array();
 $gridColumns = sizeof($letters);
 $gridRows = 10;
-foreach ($letters as $letter) {
-    for ($i=0;$i<$gridRows;$i++) {
-        $userGuesses[$letter . $i] = 0;
-    }
-}
-foreach ($letters as $letter) {
-    for ($i=0;$i<$gridRows;$i++) {
-        $compGuesses[$letter . $i] = 0;
-    }
-}
-
 $shipsizes = array
 (
     'destroyer' => 2,
@@ -32,38 +24,22 @@ $ships = array (
 );
 foreach ($letters as $letter) {
     $userBattleshipGrid[$letter] = array_fill(0, $gridRows, 0);
+    $userGuesses[$letter] = array_fill(0, $gridRows, 0);
+    for ($i=0;$i<$gridRows;$i++) {
+        $compGuesses[$letter . $i] = 0;
+    }
 }
+
+$placeShips = new Grid($letters, $gridRows, array(1 => $userBattleshipGrid), 1);
+
 $username = readline("Enter username >> ");
 
 echo("\nPlace your battleships from smallest to largest. First you choose the orientation of the battleship, 'h' for horizontal or 'v' for vertical.\n");
 echo("Then choose the cell of either the leftmost (if you chose horizontal orientation) or topmost (if you chose vertical orientation) position of the ship.\n\n");
 foreach ($shipsizes as $shipname => $shipsize) {
-    echo(" ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("\n");
-    for ($j = 0; $j < $gridRows; $j++) {
-        echo ("  ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+\n" . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("| ");       
-            if ($userBattleshipGrid[$letter][$j] == 2) {
-                echo("o ");
-            } else {
-                echo("  ");
-            };
-        };
-        echo ("|\n");
-    };
-    echo ("  ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+\n");
+
+    $placeShips->gridCells = array(1 => $userBattleshipGrid);
+    $placeShips->outputGrids();
 
     $userOrientation = readline("Choose the orientation of your " . $shipname . " (size " . $shipsize . ") >> ");
     while (strtoupper($userOrientation) != "H" && strtoupper($userOrientation) != "V") {
@@ -127,50 +103,11 @@ foreach ($shipsizes as $shipname => $shipsize) {
 
 $compRef = $userBattleshipGrid;
 
-echo("              Your Battleships                              Computer Grid\n");
-    echo(" ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("     ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("\n");
-    for ($j = 0; $j < $gridRows; $j++) {
-        echo ("  ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+    ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+\n" . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("| ");       
-            if ($userBattleshipGrid[$letter][$j] == 2) {
-                echo("o ");
-            } else {
-                echo("  ");
-            };
-        };
-        echo("|  " . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("|   ");
-        };
-        echo ("|\n");
-    };
-    echo ("  ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+    ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+\n");
+$battleGrids = new Grid($letters, $gridRows, array(1 => $userBattleshipGrid, 2 => $userGuesses), 2);
 
+echo("              Your Battleships                              Computer Grid\n");
+    
+$battleGrids->outputGrids();
 
 foreach ($letters as $letter) {
     $cells[$letter] = array_fill(0, $gridRows, 0);
@@ -236,12 +173,16 @@ foreach($shipsizes as $shipname => $shipsize) {
 };
 while (array_sum($compRef['A'])+array_sum($compRef['B'])+array_sum($compRef['C'])+array_sum($compRef['D'])+array_sum($compRef['E'])+array_sum($compRef['F'])+array_sum($compRef['G'])+array_sum($compRef['H'])+array_sum($compRef['I'])+array_sum($compRef['J'])>0 && array_sum($cells['A'])+array_sum($cells['B'])+array_sum($cells['C'])+array_sum($cells['D'])+array_sum($cells['E'])+array_sum($cells['F'])+array_sum($cells['G'])+array_sum($cells['H'])+array_sum($cells['I'])+array_sum($cells['J'])>0) {
     $fire = strtoupper(readline("Name the cell you would like to shoot: "));
-    while($userGuesses[$fire]!==0) {
+    $fireLetter = substr($fire,0,1);
+    $fireNumber = substr($fire,1,1);
+    while($userGuesses[$fireLetter][$fireNumber]!==0) {
         $fire = strtoupper(readline("You can't shoot the same place twice!\nName the cell you would like to shoot: "));
+        $fireLetter = substr($fire,0,1);
+        $fireNumber = substr($fire,1,1);
     };
-    if ($cells[substr($fire,0,1)][substr($fire,1,1)] == 1) {
-        $userGuesses[$fire] = 1;
-        $cells[substr($fire,0,1)][substr($fire,1,1)] -= 1;
+    if ($cells[$fireLetter][$fireNumber] == 1) {
+        $userGuesses[$fireLetter][$fireNumber] = 1;
+        $cells[$fireLetter][$fireNumber] -= 1;
         echo ($username . ": HIT!\n");
         foreach ($ships as $shipname => $position) {
             if($position[$fire] == 1) {
@@ -254,135 +195,33 @@ while (array_sum($compRef['A'])+array_sum($compRef['B'])+array_sum($compRef['C']
             }
         }
     } else {
-        $userGuesses[$fire] = -1;
+        $userGuesses[$fireLetter][$fireNumber] = -1;
         echo ($username . ": Miss...\n");
     };
     
     if (array_sum($cells['A'])+array_sum($cells['B'])+array_sum($cells['C'])+array_sum($cells['D'])+array_sum($cells['E'])+array_sum($cells['F'])+array_sum($cells['G'])+array_sum($cells['H'])+array_sum($cells['I'])+array_sum($cells['J'])==0){
         echo("              Your Battleships                              Computer Grid\n");
-    echo(" ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("     ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("\n");
-    for ($j = 0; $j < $gridRows; $j++) {
-        echo ("  ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+    ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+\n" . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("| ");       
-            if ($userBattleshipGrid[$letter][$j] == 2) {
-                echo("o ");
-            } elseif ($userBattleshipGrid[$letter][$j] == 1) {
-                echo("x ");
-            } elseif ($userBattleshipGrid[$letter][$j] == -1) {
-                echo("- ");
-            } else {
-                echo("  ");
-            };
-        };
-        echo("|  " . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("| ");       
-            if ($userGuesses[$letter . $j] == 1) {
-                echo("x ");
-            } elseif ($userGuesses[$letter . $j] === -1) {
-                echo("- ");
-            } else {
-                echo("  ");
-            };
-        };
-        echo ("|\n");
-    };
-    echo ("  ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+    ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+\n");
+        $battleGrids->gridCells = array(1 => $userBattleshipGrid, 2 => $userGuesses);
+        $battleGrids->outputGrids();
         break;
     }
     //Computer shot
     $compGuess = array_rand($compGuesses);
-    $compGuessLetterKey = array_search(strtoupper(substr($compGuess,0,1)),$letters);
+    $compGuessLetter = strtoupper(substr($compGuess,0,1));
     $compGuessNumber= substr($compGuess,1,1);
-    if ($compRef[$letters[$compGuessLetterKey]][$compGuessNumber] == 2) {
-        $userBattleshipGrid[$letters[$compGuessLetterKey]][$compGuessNumber] = 1;
-        $compRef[$letters[$compGuessLetterKey]][$compGuessNumber] = 0;
+    if ($compRef[$compGuessLetter][$compGuessNumber] == 2) {
+        $userBattleshipGrid[$compGuessLetter][$compGuessNumber] = 1;
+        $compRef[$compGuessLetter][$compGuessNumber] = 0;
         echo("Computer: HIT!\n");
     } else {
-        $userBattleshipGrid[$letters[$compGuessLetterKey]][$compGuessNumber] = -1;
+        $userBattleshipGrid[$compGuessLetter][$compGuessNumber] = -1;
         echo("Computer: Miss...\n");
     }
-    unset($compGuesses[$compGuess]);
+    unset($compGuesses[$compGuessLetter][$compGuessNumber]);
     //End Computer shot
     echo("              Your Battleships                              Computer Grid\n");
-    echo(" ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("     ");
-    foreach ($letters as $letter) {
-        echo ("   " . $letter);
-    };
-    echo("\n");
-    for ($j = 0; $j < $gridRows; $j++) {
-        echo ("  ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+    ");
-        foreach ($letters as $letter) {
-            echo ("+---");
-        };
-        echo ("+\n" . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("| ");       
-            if ($userBattleshipGrid[$letter][$j] == 2) {
-                echo("o ");
-            } elseif ($userBattleshipGrid[$letter][$j] == 1) {
-                echo("x ");
-            } elseif ($userBattleshipGrid[$letter][$j] == -1) {
-                echo("- ");
-            } else {
-                echo("  ");
-            };
-        };
-        echo("|  " . $j . " ");
-        foreach ($letters as $letter) {
-            echo ("| ");       
-            if ($userGuesses[$letter . $j] == 1) {
-                echo("x ");
-            } elseif ($userGuesses[$letter . $j] === -1) {
-                echo("- ");
-            } else {
-                echo("  ");
-            };
-        };
-        echo ("|\n");
-    };
-    echo ("  ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+    ");
-    for ($i = 0; $i < $gridColumns; $i++) {
-        echo ("+---");
-    };
-    echo ("+\n");
+    $battleGrids->gridCells = array(1 => $userBattleshipGrid, 2 => $userGuesses);
+    $battleGrids->outputGrids();
 };
 
 if (array_sum($compRef['A'])+array_sum($compRef['B'])+array_sum($compRef['C'])+array_sum($compRef['D'])+array_sum($compRef['E'])+array_sum($compRef['F'])+array_sum($compRef['G'])+array_sum($compRef['H'])+array_sum($compRef['I'])+array_sum($compRef['J']) == 0) {
